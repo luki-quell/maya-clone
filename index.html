@@ -163,6 +163,7 @@ function load(){
 function save(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch(e){ toast("Speichern fehlgeschlagen – Speicher evtl. voll?"); }
+  writeFile();
 }
 
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -359,6 +360,13 @@ function renderMore(){
     + '<div class="row"><label class="btn secondary" style="text-align:center;cursor:pointer;flex:1">📥 JSON importieren'
     + '<input type="file" id="import-file" accept="application/json,.json" hidden></label>'
     + '<button class="btn danger" data-action="delete-all">🗑 Löschen</button></div></div>'
+    + '<div class="card"><h3 style="margin:0 0 6px;font-size:16px">💾 Unabhängig vom Browser-Cache</h3>'
+    + '<p class="muted" style="margin:0 0 12px">Verknüpfe eine JSON-Datei auf deinem Gerät (z. B. im Dokumente-Ordner). Jede Änderung wird automatisch in diese Datei geschrieben – selbst wenn Chrome Cache oder Websitedaten löscht, bleiben die Daten in der Datei erhalten.</p>'
+    + (fileHandle ? '<p class="muted" style="margin:0 0 10px">Verknüpft mit <b>'+esc(fileHandle.name||"Datei")+'</b> ('+(ui.filePerm==="granted"?"Schreibzugriff aktiv":"Zugriff nötig")+')</p>' : "")
+    + '<div class="row"><button class="btn secondary" data-action="link-file">📁 Datei verknüpfen</button>'
+    + '<button class="btn secondary" data-action="open-file">📂 Datei laden</button></div>'
+    + (fileHandle ? '<div class="row"><button class="btn danger" data-action="unlink-file">Verknüpfung lösen</button></div>' : "")
+    + '<p class="muted" style="margin:10px 0 0">Funktioniert in Chrome/Edge (Android & Desktop). Auf iOS Safari bitte JSON-Export/Import oben nutzen.</p></div>'
     + '<div class="card"><h3 style="margin:0 0 6px;font-size:16px">Über Luna</h3>'
     + '<p class="muted" style="margin:0">Lokaler Zyklus-Tracker (Maya-Klon): Perioden, Symptome und Notizen pro Tag, Phasen- und Eisprung-Prognose aus deinem Verlauf. Reine HTML-/JS-Datei, läuft komplett offline per Doppelklick. Exportiere regelmäßig als JSON als Backup.</p></div>';
 }
@@ -441,6 +449,80 @@ function loadFrom(o){
   return { days };
 }
 
+let fileHandle = null;
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    if(typeof indexedDB==="undefined"){ rej(new Error("no idb")); return; }
+    const r = indexedDB.open("luna-store",1);
+    r.onupgradeneeded = ()=>{ r.result.createObjectStore("kv"); };
+    r.onsuccess = ()=>res(r.result);
+    r.onerror = ()=>rej(r.error);
+  });
+}
+function idbReq(req){ return new Promise((res,rej)=>{ req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
+async function idbSet(k,v){ const db=await idbOpen(); const t=db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); await new Promise((res,rej)=>{ t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+async function idbGet(k){ const db=await idbOpen(); return idbReq(db.transaction("kv","readonly").objectStore("kv").get(k)); }
+async function idbDel(k){ const db=await idbOpen(); const t=db.transaction("kv","readwrite"); t.objectStore("kv").delete(k); await new Promise((res,rej)=>{ t.oncomplete=res; t.onerror=()=>rej(t.error); }); }
+
+async function initFileHandle(){
+  try{ fileHandle = await idbGet("file-handle"); }catch(e){ fileHandle = null; }
+  if(fileHandle){
+    try{
+      ui.filePerm = await fileHandle.queryPermission({mode:"readwrite"});
+      if(ui.filePerm==="granted") await adoptFileIfNewer();
+    }catch(e){ ui.filePerm = "prompt"; }
+  }
+}
+async function adoptFileIfNewer(){
+  try{
+    const f = await fileHandle.getFile();
+    const obj = JSON.parse(await f.text());
+    const d = obj.data ? obj.data : obj;
+    if(d && d.days && Object.keys(d.days).length && Object.keys(state.days).length===0){
+      state = loadFrom(d); save();
+    }
+  }catch(e){}
+}
+async function writeFile(){
+  if(!fileHandle) return;
+  try{
+    if(await fileHandle.queryPermission({mode:"readwrite"})!=="granted"){
+      ui.filePerm = await fileHandle.requestPermission({mode:"readwrite"});
+    }
+    if(ui.filePerm!=="granted") return;
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify({app:"luna-zyklus-tracker",version:1,savedAt:new Date().toISOString(),data:state},null,2));
+    await w.close();
+  }catch(e){}
+}
+async function linkFile(){
+  if(!("showSaveFilePicker" in window)){ toast("In diesem Browser nicht verfügbar – nutze JSON-Export"); return; }
+  try{
+    const h = await window.showSaveFilePicker({suggestedName:"luna-daten.json",types:[{description:"JSON-Datei",accept:{"application/json":[".json"]}}]});
+    fileHandle = h; await idbSet("file-handle",h); ui.filePerm = "granted";
+    await writeFile(); renderAll(); toast("Datei verknüpft 💾 – Änderungen landen jetzt in der Datei");
+  }catch(e){}
+}
+async function openFile(){
+  if(!("showOpenFilePicker" in window)){ toast("In diesem Browser nicht verfügbar – nutze JSON-Import"); return; }
+  try{
+    const picked = await window.showOpenFilePicker({types:[{description:"JSON-Datei",accept:{"application/json":[".json"]}}],multiple:false});
+    const h = picked[0];
+    const f = await h.getFile();
+    const obj = JSON.parse(await f.text());
+    const d = obj.data ? obj.data : obj;
+    if(!d || typeof d.days !== "object") throw new Error("bad");
+    state = loadFrom(d); save();
+    fileHandle = h; await idbSet("file-handle",h); ui.filePerm = "granted";
+    renderAll(); toast("Datei geladen 📂");
+  }catch(e){ if(e && e.name!=="AbortError") toast("Ungültige Datei"); }
+}
+async function unlinkFile(){
+  fileHandle = null; ui.filePerm = null;
+  try{ await idbDel("file-handle"); }catch(e){}
+  renderAll(); toast("Verknüpfung gelöst");
+}
+
 let toastTimer = null;
 function toast(msg){
   const t = document.getElementById("toast");
@@ -475,6 +557,9 @@ document.addEventListener("click", e=>{
   else if(a==="m-save"){ saveEditor(); }
   else if(a==="m-close"){ if(el.id==="backdrop" || el.tagName==="BUTTON") closeEditor(); }
   else if(a==="m-stay"){ /* Klick innerhalb des Sheets */ }
+  else if(a==="link-file"){ linkFile(); }
+  else if(a==="open-file"){ openFile(); }
+  else if(a==="unlink-file"){ unlinkFile(); }
   else if(a==="export"){ exportJSON(); }
   else if(a==="delete-all"){
     if(confirm("Wirklich alle lokal gespeicherten Daten löschen?")){
@@ -500,7 +585,7 @@ if("serviceWorker" in navigator){
 }
 if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); }
 
-renderAll();
+initFileHandle().finally(renderAll);
 </script>
 </body>
 </html>

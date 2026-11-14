@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "luna-v1";
+const CACHE = "luna-v2";
 const ASSETS = [
   "./",
   "index.html",

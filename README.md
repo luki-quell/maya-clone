@@ -12,5 +12,6 @@ Einfach `index.html` doppelklicken (funktioniert auch von `file://`, komplett of
 - Statistik: Ø Zykluslänge, Ø Periodenlänge, Verlauf
 
 ## Datenspeicherung
-Alle Daten bleiben lokal im `localStorage` des Browsers (Schlüssel `luna-zyklus-daten-v1`).
-Über „Mehr" → „Als JSON exportieren" kann ein Backup als JSON heruntergeladen und später wieder importiert werden.
+- Primär: `localStorage` des Browsers (Schlüssel `luna-zyklus-daten-v1`) + `navigator.storage.persist()` gegen automatisches Löschen.
+- **Unabhängig vom Browser-Cache:** unter „Mehr" → „Datei verknüpfen" eine echte `luna-daten.json` auf dem Gerät auswählen (File System Access API, Chrome/Edge). Jede Änderung wird automatisch in diese Datei geschrieben – sie übersteht auch das Löschen von Cache/Websitedaten. Auf iOS Safari stattdessen „Als JSON exportieren"/„JSON importieren" nutzen.
+- Manuelles Backup jederzeit über „Mehr" → „Als JSON exportieren".
