@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ec4899">
+<title>Luna · Zyklus-Tracker</title>
+<style>
+:root{
+  --pink:#ec4899; --purple:#8b5cf6; --purple-soft:#ede9fe;
+  --card:#ffffff; --text:#111827; --muted:#6b7280; --danger:#dc2626;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:linear-gradient(160deg,#fdf2f8,#f5f3ff);
+  color:var(--text);min-height:100vh;
+}
+.app{max-width:480px;margin:0 auto;padding:18px 16px 110px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.logo{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--pink),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 16px rgba(236,72,153,.35)}
+.top h1{margin:0;font-size:22px;letter-spacing:.5px}
+.top p{margin:0;font-size:12px;color:var(--muted)}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(17,24,39,.06)}
+.card h3{margin:0 0 10px;font-size:15px}
+.hero{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;text-align:center;padding:26px 16px}
+.hero .day{font-size:52px;font-weight:800;line-height:1}
+.hero .phase{display:inline-block;margin-top:10px;background:rgba(255,255,255,.22);padding:5px 14px;border-radius:999px;font-weight:600;font-size:14px}
+.hero .desc{margin:10px 0 0;font-size:13px;opacity:.92}
+.btn{display:inline-block;border:none;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer;
+  background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;width:100%;box-shadow:0 4px 12px rgba(236,72,153,.3)}
+.btn.secondary{background:#f3f4f6;color:var(--text);box-shadow:none}
+.btn.danger{background:#fee2e2;color:var(--danger);box-shadow:none}
+.btn.small{width:auto;padding:8px 14px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:var(--text)}
+.chip.on{background:var(--purple-soft);border-color:var(--purple);color:#5b21b6;font-weight:600}
+.flow-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.flow-btn{border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:10px 2px;font-size:11px;cursor:pointer;text-align:center;color:var(--text)}
+.flow-btn.on{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:700}
+.pred-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f3f4f6}
+.pred-row:last-child{border-bottom:none}
+.pred-row span{color:var(--muted)}
+.pred-row b{font-size:13px}
+.pred-row em{font-style:normal;font-size:11px;color:var(--pink);white-space:nowrap}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-head h2{margin:0;font-size:17px;text-transform:capitalize}
+.cal-nav{border:none;background:#f3f4f6;width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;color:var(--text)}
+.cal-today{border:none;background:var(--purple-soft);color:#5b21b6;height:34px;padding:0 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
+.cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-week span{text-align:center;font-size:11px;color:var(--muted);font-weight:600;padding:4px 0}
+.cal-cell{aspect-ratio:1;border:none;background:#f9fafb;border-radius:10px;font-size:13px;cursor:pointer;position:relative;color:var(--text);display:flex;align-items:center;justify-content:center;padding:0}
+.cal-cell.today{outline:2px solid var(--purple);outline-offset:-2px;font-weight:700}
+.cal-cell.period{background:var(--pink);color:#fff;font-weight:700}
+.cal-cell.fertile{background:var(--purple-soft)}
+.cal-cell.predicted{box-shadow:inset 0 0 0 2px var(--pink);color:var(--pink);font-weight:700}
+.cal-cell .dot{position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--purple)}
+.cal-cell.period .dot{background:#fff}
+.cal-cell.ov::after{content:"";position:absolute;top:4px;width:5px;height:5px;border-radius:50%;background:var(--purple)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:11px;color:var(--muted)}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.legend .dot-sw{border-radius:50%;background:var(--purple)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f9fafb;border-radius:14px;padding:12px 8px;text-align:center}
+.stat b{display:block;font-size:22px;color:var(--pink)}
+.stat span{font-size:11px;color:var(--muted)}
+.hist{display:flex;flex-direction:column;gap:8px}
+.hist-item{display:flex;justify-content:space-between;gap:8px;background:#f9fafb;border-radius:12px;padding:10px 12px;font-size:13px}
+label.lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+textarea,input[type=date]{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px;font-size:14px;font-family:inherit;resize:vertical;background:#fff;color:var(--text)}
+.row{display:flex;gap:10px;margin-top:16px}
+.row .btn{flex:1}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-top:1px solid #f3f4f6;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:40}
+#nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted);padding:6px 0;border-radius:12px;cursor:pointer}
+#nav button .ic{font-size:20px;line-height:1}
+#nav button.active{color:var(--pink);font-weight:700}
+#nav button.fab .ic{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 14px rgba(236,72,153,.4);margin-top:-20px}
+#modal:empty{display:none}
+.backdrop{position:fixed;inset:0;background:rgba(17,24,39,.4);display:flex;align-items:flex-end;justify-content:center;z-index:60}
+.sheet{background:#fff;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .18s ease}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{margin:0;font-size:17px}
+.sheet .sub{font-size:12px;color:var(--muted);margin:4px 0 6px}
+#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;white-space:nowrap}
+#toast.show{opacity:1}
+code{background:#f3f4f6;padding:1px 6px;border-radius:6px;font-size:11px}
+.muted{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo">🌙</div>
+    <div>
+      <h1>Luna</h1>
+      <p>Zyklus-Tracking · 100% lokal im Browser</p>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+<nav id="nav">
+  <button data-action="nav" data-nav="home"><span class="ic">📊</span><span>Übersicht</span></button>
+  <button data-action="nav" data-nav="cal"><span class="ic">📅</span><span>Kalender</span></button>
+  <button data-action="nav" data-nav="log" class="fab"><span class="ic">＋</span><span>Loggen</span></button>
+  <button data-action="nav" data-nav="stats"><span class="ic">📈</span><span>Statistik</span></button>
+  <button data-action="nav" data-nav="more"><span class="ic">⚙️</span><span>Mehr</span></button>
+</nav>
+<div id="modal"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+
+const STORE_KEY = "luna-zyklus-daten-v1";
+
+const SYMPTOMS = [
+  {id:"kraempfe",      label:"Krämpfe",            icon:"💢"},
+  {id:"kopfschmerzen", label:"Kopfschmerzen",      icon:"🤕"},
+  {id:"rueckenschmerzen",label:"Rückenschmerzen",   icon:"🦴"},
+  {id:"blaeungen",     label:"Blähungen",          icon:"🎈"},
+  {id:"muedigkeit",    label:"Müdigkeit",          icon:"😴"},
+  {id:"stimmung",      label:"Stimmungsschwankungen",icon:"🎭"},
+  {id:"heisshunger",   label:"Heißhunger",         icon:"🍫"},
+  {id:"akne",          label:"Akne",               icon:"🩹"},
+  {id:"uebelkeit",     label:"Übelkeit",           icon:"🤢"},
+  {id:"schlaf",        label:"Schlafstörungen",     icon:"🌙"},
+  {id:"energie",       label:"Energiegeladen",     icon:"⚡"},
+  {id:"libido",        label:"Libido steigt",      icon:"🔥"}
+];
+const FLOW = [
+  {v:1,label:"Leicht"},{v:2,label:"Mittel"},{v:3,label:"Stark"},{v:4,label:"Sehr stark"}
+];
+
+let state = load();
+const ui = { view:"home", cal:firstOfMonth(new Date()), editor:null, draft:null, logDate:todayKey(), logDraft:null };
+const view = document.getElementById("view");
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && typeof o === "object" && o.days){
+        const days = {};
+        for(const k of Object.keys(o.days)){
+          const d = o.days[k] || {};
+          days[k] = { flow:Number(d.flow)||0, symptoms:Array.isArray(d.symptoms)?d.symptoms:[], note:String(d.note||"") };
+        }
+        return { days };
+      }
+    }
+  }catch(e){}
+  return { days:{} };
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){ toast("Speichern fehlgeschlagen – Speicher evtl. voll?"); }
+}
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function parseKey(k){ const p=k.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
+function todayKey(){ return dateKey(new Date()); }
+function addDays(k,n){ const d=parseKey(k); d.setDate(d.getDate()+n); return dateKey(d); }
+function diffDays(a,b){ return Math.round((parseKey(b)-parseKey(a))/86400000); }
+function firstOfMonth(d){ return new Date(d.getFullYear(),d.getMonth(),1); }
+function fmtLong(k){ return parseKey(k).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short",year:"numeric"}); }
+function fmtRange(a,b){
+  const A=parseKey(a), B=parseKey(b);
+  if(A.getMonth()===B.getMonth() && A.getFullYear()===B.getFullYear())
+    return A.getDate()+".–"+B.getDate()+". "+A.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  return A.toLocaleDateString("de-DE",{day:"numeric",month:"short"})+" – "+B.toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"});
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toggle(arr,id){ const i=arr.indexOf(id); if(i>=0) arr.splice(i,1); else arr.push(id); }
+
+function getPeriods(){
+  const keys = Object.keys(state.days).filter(k=>state.days[k].flow>0).sort();
+  const periods = [];
+  for(const k of keys){
+    const last = periods[periods.length-1];
+    if(last && diffDays(last.end,k)===1) last.end = k;
+    else periods.push({start:k,end:k});
+  }
+  return periods;
+}
+function stats(){
+  const p = getPeriods();
+  if(!p.length) return null;
+  const cycleLens = [], periodLens = [];
+  for(let i=1;i<p.length;i++) cycleLens.push(diffDays(p[i-1].start,p[i].start));
+  for(const x of p) periodLens.push(diffDays(x.start,x.end)+1);
+  const avg = a => a.length ? Math.round(a.reduce((s,x)=>s+x,0)/a.length) : null;
+  return { count:p.length, avgCycle:avg(cycleLens)||28, avgPeriod:avg(periodLens)||5, periods:p };
+}
+function predict(){
+  const p = getPeriods();
+  if(!p.length) return null;
+  const s = stats(), last = p[p.length-1];
+  const nextStart = addDays(last.start, s.avgCycle);
+  const ov = addDays(nextStart,-14);
+  return { lastStart:last.start, lastEnd:last.end, nextStart, ovulation:ov,
+           fertileStart:addDays(ov,-5), fertileEnd:addDays(ov,1), avgCycle:s.avgCycle };
+}
+function getPhase(today){
+  const p = getPeriods();
+  if(!p.length) return null;
+  const s = stats(), last = p[p.length-1];
+  const day = diffDays(last.start,today)+1;
+  if(day<=0) return null;
+  const ovDay = s.avgCycle-14;
+  if(today<=last.end)            return {day, name:"Menstruation",      desc:"Deine Periode läuft. Gönn dir Ruhe und Wärme. 🫖"};
+  if(day>=ovDay-2 && day<=ovDay+1) return {day, name:"Fruchtbare Phase", desc:"Eisprung in Kürze – höchste Fruchtbarkeit. 🌸"};
+  if(day<ovDay-2)                return {day, name:"Follikelphase",     desc:"Die Energie steigt wieder – gute Zeit für Neues. ✨"};
+  return {day, name:"Lutealphase", desc:"Der Körper fährt herunter – sei sanft mit dir. 🌙"};
+}
+
+function chipHtml(s,on,action,id){
+  return '<button class="chip '+(on?"on":"")+'" data-action="'+action+'" data-id="'+id+'">'+s.icon+" "+esc(s.label)+"</button>";
+}
+function flowRowHtml(draft,action){
+  return FLOW.map(f=>'<button class="flow-btn '+(draft.flow===f.v?"on":"")+'" data-action="'+action+'" data-v="'+f.v+'">'+(draft.flow===f.v?"✓ ":"")+f.label+"</button>").join("")
+       + '<button class="flow-btn '+(draft.flow===0?"on":"")+'" data-action="'+action+'" data-v="0">Keine</button>';
+}
+
+function renderNav(){
+  document.querySelectorAll("#nav button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.nav===ui.view);
+  });
+}
+function renderAll(){ renderNav(); renderView(); renderModal(); }
+
+function renderView(){
+  if(ui.view==="home") renderHome();
+  else if(ui.view==="cal") renderCal();
+  else if(ui.view==="log") renderLog();
+  else if(ui.view==="stats") renderStats();
+  else renderMore();
+}
+
+function renderHome(){
+  const today = todayKey();
+  const periods = getPeriods();
+  const pred = predict();
+  let html = "";
+  if(!periods.length){
+    html += '<div class="card hero"><div class="day">👋</div><div class="phase">Willkommen bei Luna</div>'
+      + '<p class="desc">Logge deine Periode, Symptome und Notizen. Alle Daten bleiben lokal in deinem Browser – kein Konto, kein Backend.</p></div>'
+      + '<button class="btn" data-action="nav" data-nav="log">Ersten Eintrag erstellen</button>';
+  } else {
+    const ph = getPhase(today);
+    html += '<div class="card hero"><div class="day">'+ph.day+'</div><div class="phase">'+esc(ph.name)+'</div>'
+      + '<p class="desc">'+esc(ph.desc)+'</p></div>';
+    const last = periods[periods.length-1];
+    if(today>=last.start && today<=last.end){
+      const pd = diffDays(last.start,today)+1;
+      html += '<div class="card"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:24px">🩸</span><div>'
+        + '<b>Periode läuft</b><div class="muted">Tag '+pd+' · begonnen am '+fmtLong(last.start)+'</div></div></div>'
+        + '<button class="btn secondary small" style="margin-top:12px" data-action="open-editor" data-key="'+today+'">Heute bearbeiten</button></div>';
+    } else {
+      html += '<div class="card"><button class="btn" data-action="start-period">🩸 Periode heute starten</button>'
+        + '<p class="muted" style="margin:10px 0 0;text-align:center">Stärke & Symptome kannst du danach anpassen. Sobald die Periode vorbei ist, einfach keine Blutung mehr eintragen.</p></div>';
+    }
+    if(pred){
+      const daysTo = diffDays(today,pred.nextStart);
+      html += '<div class="card"><h3>🔮 Prognose (Ø Zyklus: '+pred.avgCycle+' Tage)</h3>'
+        + '<div class="pred-row"><span>Nächste Periode</span><b>'+fmtLong(pred.nextStart)+'</b><em>'+(daysTo<0?"überfällig seit "+(-daysTo)+" T.":"in "+daysTo+" Tagen")+'</em></div>'
+        + '<div class="pred-row"><span>Eisprung (geschätzt)</span><b>'+fmtLong(pred.ovulation)+'</b><em>Zyklus-Tag '+(pred.avgCycle-14)+'</em></div>'
+        + '<div class="pred-row"><span>Fruchtbares Fenster</span><b>'+fmtRange(pred.fertileStart,pred.fertileEnd)+'</b><em>ca. 6 Tage</em></div></div>';
+    }
+    const td = state.days[today] || {symptoms:[]};
+    html += '<div class="card"><h3>Heute: Symptome</h3><div class="chips">'
+      + SYMPTOMS.map(s=>chipHtml(s,td.symptoms.includes(s.id),"quick-sym",s.id)).join("")
+      + '</div><button class="btn secondary small" style="margin-top:12px" data-action="open-editor" data-key="'+today+'">✏️ Tag bearbeiten (Blutung/Notiz)</button></div>';
+  }
+  view.innerHTML = html;
+}
+
+function renderCal(){
+  const y = ui.cal.getFullYear(), m = ui.cal.getMonth();
+  const first = new Date(y,m,1);
+  const startDow = (first.getDay()+6)%7;
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const pred = predict(), today = todayKey();
+  let cells = "";
+  for(let i=0;i<startDow;i++) cells += "<div></div>";
+  for(let d=1;d<=daysInMonth;d++){
+    const key = dateKey(new Date(y,m,d));
+    const dd = state.days[key];
+    let cls = "cal-cell";
+    if(key===today) cls += " today";
+    if(dd && dd.flow>0) cls += " period";
+    if(pred && key>=pred.fertileStart && key<=pred.fertileEnd && !(dd && dd.flow>0)) cls += " fertile";
+    if(pred && key===pred.ovulation) cls += " ov";
+    if(pred && key===pred.nextStart) cls += " predicted";
+    const dot = (dd && (dd.symptoms.length || dd.note)) ? '<span class="dot"></span>' : "";
+    const alpha = (dd && dd.flow>0) ? ' style="background:rgba(236,72,153,'+(0.35+dd.flow*0.15).toFixed(2)+')"' : "";
+    cells += '<button class="'+cls+'" data-action="open-editor" data-key="'+key+'"'+alpha+'>'+d+dot+"</button>";
+  }
+  const monthName = first.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  view.innerHTML = '<div class="card">'
+    + '<div class="cal-head"><button class="cal-nav" data-action="cal-prev">‹</button><h2>'+esc(monthName)+'</h2>'
+    + '<div style="display:flex;gap:6px"><button class="cal-today" data-action="cal-today">Heute</button><button class="cal-nav" data-action="cal-next">›</button></div></div>'
+    + '<div class="cal-week"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div>'
+    + '<div class="cal-grid">'+cells+'</div>'
+    + '<div class="legend"><span><i class="sw" style="background:var(--pink)"></i>Periode</span>'
+    + '<span><i class="sw" style="background:var(--purple-soft)"></i>Fruchtbar</span>'
+    + '<span><i class="sw" style="box-shadow:inset 0 0 0 2px var(--pink)"></i>Prognose</span>'
+    + '<span><i class="sw dot-sw"></i>Eintrag</span></div></div>';
+}
+
+function renderLog(){
+  if(!ui.logDraft || ui.logDraft._key!==ui.logDate){
+    const d = state.days[ui.logDate];
+    ui.logDraft = { _key:ui.logDate, flow:d?d.flow:0, symptoms:d?d.symptoms.slice():[], note:d?d.note:"" };
+  }
+  const d = ui.logDraft;
+  view.innerHTML = '<div class="card"><h3 style="margin:0 0 12px;font-size:16px">Eintrag loggen</h3>'
+    + '<label class="lbl">Datum</label><input type="date" id="log-date" value="'+ui.logDate+'">'
+    + '<label class="lbl">Blutung</label><div class="flow-row">'+flowRowHtml(d,"log-flow")+'</div>'
+    + '<label class="lbl">Symptome</label><div class="chips">'+SYMPTOMS.map(s=>chipHtml(s,d.symptoms.includes(s.id),"log-sym",s.id)).join("")+'</div>'
+    + '<label class="lbl">Notiz</label><textarea id="log-note" rows="3" placeholder="z. B. besonders guter Schlaf …">'+esc(d.note)+'</textarea>'
+    + '<div class="row"><button class="btn" data-action="log-save">Speichern</button></div></div>';
+}
+
+function renderStats(){
+  const s = stats();
+  if(!s){
+    view.innerHTML = '<div class="card" style="text-align:center;color:var(--muted)">Noch keine Daten. Logge deine erste Periode über „Loggen“. 👋</div>';
+    return;
+  }
+  let hist = "";
+  for(let i=s.periods.length-1;i>=0;i--){
+    const p = s.periods[i];
+    const len = diffDays(p.start,p.end)+1;
+    const cyc = i>0 ? diffDays(s.periods[i-1].start,p.start) : null;
+    hist += '<div class="hist-item"><span>🩸 '+fmtRange(p.start,p.end)+'</span><span>'+len+' Tage'+(cyc?' · Zyklus '+cyc+' T.':"")+'</span></div>';
+  }
+  view.innerHTML = '<div class="card"><div class="stat-grid">'
+    + '<div class="stat"><b>'+s.avgCycle+'</b><span>Ø Zyklus (Tage)</span></div>'
+    + '<div class="stat"><b>'+s.avgPeriod+'</b><span>Ø Periode (Tage)</span></div>'
+    + '<div class="stat"><b>'+s.count+'</b><span>Perioden</span></div></div></div>'
+    + '<div class="card"><h3>Verlauf</h3><div class="hist">'+hist+'</div></div>';
+}
+
+function renderMore(){
+  const n = Object.keys(state.days).length;
+  view.innerHTML = '<div class="card"><h3 style="margin:0 0 6px;font-size:16px">Daten</h3>'
+    + '<p class="muted" style="margin:0 0 14px">'+n+' Tag(e) lokal gespeichert im localStorage deines Browsers (Schlüssel <code>'+STORE_KEY+'</code>). Kein Backend, keine Cloud – die Datei bleibt auf diesem Gerät.</p>'
+    + '<button class="btn" data-action="export">📤 Als JSON exportieren</button>'
+    + '<div class="row"><label class="btn secondary" style="text-align:center;cursor:pointer;flex:1">📥 JSON importieren'
+    + '<input type="file" id="import-file" accept="application/json,.json" hidden></label>'
+    + '<button class="btn danger" data-action="delete-all">🗑 Löschen</button></div></div>'
+    + '<div class="card"><h3 style="margin:0 0 6px;font-size:16px">Über Luna</h3>'
+    + '<p class="muted" style="margin:0">Lokaler Zyklus-Tracker (Maya-Klon): Perioden, Symptome und Notizen pro Tag, Phasen- und Eisprung-Prognose aus deinem Verlauf. Reine HTML-/JS-Datei, läuft komplett offline per Doppelklick. Exportiere regelmäßig als JSON als Backup.</p></div>';
+}
+
+function renderModal(){
+  const m = document.getElementById("modal");
+  if(!ui.editor){ m.innerHTML = ""; return; }
+  const k = ui.editor, d = ui.draft;
+  m.innerHTML = '<div class="backdrop" id="backdrop" data-action="m-close">'
+    + '<div class="sheet" data-action="m-stay">'
+    + '<h3>'+fmtLong(k)+'</h3><p class="sub">Blutung, Symptome & Notiz für diesen Tag</p>'
+    + '<label class="lbl">Blutung</label><div class="flow-row">'+flowRowHtml(d,"m-flow")+'</div>'
+    + '<label class="lbl">Symptome</label><div class="chips">'+SYMPTOMS.map(s=>chipHtml(s,d.symptoms.includes(s.id),"m-sym",s.id)).join("")+'</div>'
+    + '<label class="lbl">Notiz</label><textarea id="m-note" rows="3" placeholder="Notiz …">'+esc(d.note)+'</textarea>'
+    + '<div class="row"><button class="btn" data-action="m-save">Speichern</button>'
+    + '<button class="btn secondary" data-action="m-close">Schließen</button></div></div></div>';
+}
+
+function openEditor(k){
+  const d = state.days[k];
+  ui.editor = k;
+  ui.draft = { flow:d?d.flow:0, symptoms:d?d.symptoms.slice():[], note:d?d.note:"" };
+  renderModal();
+}
+function closeEditor(){ ui.editor = null; renderModal(); }
+function persistDay(k,d){
+  if(!d.flow && !d.symptoms.length && !d.note.trim()) delete state.days[k];
+  else state.days[k] = { flow:d.flow||0, symptoms:d.symptoms, note:d.note.trim() };
+  save();
+}
+function saveEditor(){
+  persistDay(ui.editor, ui.draft);
+  closeEditor(); renderAll(); toast("Gespeichert ✓");
+}
+function saveLog(){
+  if(!ui.logDate) return;
+  persistDay(ui.logDate, ui.logDraft);
+  ui.logDate = todayKey(); ui.logDraft = null;
+  renderAll(); toast("Gespeichert ✓");
+}
+function toggleSymToday(id){
+  const k = todayKey();
+  const d = state.days[k] || {flow:0,symptoms:[],note:""};
+  toggle(d.symptoms,id);
+  persistDay(k,d);
+}
+
+function exportJSON(){
+  const payload = { app:"luna-zyklus-tracker", version:1, exportedAt:new Date().toISOString(), data:state };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "zyklus-export-"+todayKey()+".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("JSON exportiert 📤");
+}
+function importJSON(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const obj = JSON.parse(r.result);
+      const d = (obj && obj.data && obj.data.days) ? obj.data : obj;
+      if(!d || typeof d !== "object" || typeof d.days !== "object") throw new Error("bad");
+      state = loadFrom(d);
+      save(); renderAll();
+      toast("Import erfolgreich 📥");
+    }catch(e){ toast("Ungültige JSON-Datei"); }
+  };
+  r.readAsText(file);
+}
+function loadFrom(o){
+  const days = {};
+  for(const k of Object.keys(o.days||{})){
+    const d = o.days[k] || {};
+    days[k] = { flow:Number(d.flow)||0, symptoms:Array.isArray(d.symptoms)?d.symptoms:[], note:String(d.note||"") };
+  }
+  return { days };
+}
+
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+document.addEventListener("click", e=>{
+  const el = e.target.closest("[data-action]");
+  if(!el) return;
+  const a = el.dataset.action;
+  if(a==="nav"){ ui.view = el.dataset.nav; if(ui.view==="log"){ ui.logDate = todayKey(); ui.logDraft = null; } renderAll(); }
+  else if(a==="open-editor"){ openEditor(el.dataset.key); }
+  else if(a==="start-period"){
+    const t = todayKey();
+    const d = state.days[t] || {flow:0,symptoms:[],note:""};
+    if(!d.flow) d.flow = 2;
+    state.days[t] = d; save();
+    openEditor(t); renderView();
+  }
+  else if(a==="quick-sym"){ toggleSymToday(el.dataset.id); renderAll(); }
+  else if(a==="cal-prev"){ ui.cal = new Date(ui.cal.getFullYear(),ui.cal.getMonth()-1,1); renderView(); }
+  else if(a==="cal-next"){ ui.cal = new Date(ui.cal.getFullYear(),ui.cal.getMonth()+1,1); renderView(); }
+  else if(a==="cal-today"){ ui.cal = firstOfMonth(new Date()); renderView(); }
+  else if(a==="log-flow"){ ui.logDraft.flow = +el.dataset.v; renderView(); }
+  else if(a==="log-sym"){ toggle(ui.logDraft.symptoms, el.dataset.id); renderView(); }
+  else if(a==="log-save"){ saveLog(); }
+  else if(a==="m-flow"){ ui.draft.flow = +el.dataset.v; renderModal(); }
+  else if(a==="m-sym"){ toggle(ui.draft.symptoms, el.dataset.id); renderModal(); }
+  else if(a==="m-save"){ saveEditor(); }
+  else if(a==="m-close"){ if(el.id==="backdrop" || el.tagName==="BUTTON") closeEditor(); }
+  else if(a==="m-stay"){ /* Klick innerhalb des Sheets */ }
+  else if(a==="export"){ exportJSON(); }
+  else if(a==="delete-all"){
+    if(confirm("Wirklich alle lokal gespeicherten Daten löschen?")){
+      localStorage.removeItem(STORE_KEY);
+      state = { days:{} };
+      renderAll();
+      toast("Alle Daten gelöscht");
+    }
+  }
+});
+
+document.addEventListener("input", e=>{
+  if(e.target.id==="m-note" && ui.draft) ui.draft.note = e.target.value;
+  else if(e.target.id==="log-note" && ui.logDraft) ui.logDraft.note = e.target.value;
+  else if(e.target.id==="log-date" && e.target.value){ ui.logDate = e.target.value; ui.logDraft = null; renderView(); }
+});
+document.addEventListener("change", e=>{
+  if(e.target.id==="import-file" && e.target.files[0]) importJSON(e.target.files[0]);
+});
+
+renderAll();
+</script>
+</body>
+</html>
